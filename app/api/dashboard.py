@@ -45,7 +45,7 @@ async def get_dashboard(
     )).scalar_one()
 
     sessions_today = (await db.execute(
-        select(func.count(LogSession.id)).where(LogSession.received_at >= today)
+        select(func.count(LogSession.id)).where(LogSession.started_at >= today)
     )).scalar_one()
 
     # Last 10 errors (most recent, with client name)

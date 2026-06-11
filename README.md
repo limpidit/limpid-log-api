@@ -1,66 +1,88 @@
 # Limpid IT — Log Console API
 
-API FastAPI pour la réception et la consultation des logs EBP des développements Limpid IT.
+API FastAPI pour la réception **en temps réel** et la consultation des logs EBP.
+
+Au lieu d'écrire dans un fichier .txt local, le code EBP appelle directement cette API
+à chaque ligne de log.
 
 ## Démarrage local
 
 ```bash
-# Créer un virtualenv
-python -m venv .venv
-source .venv/bin/activate
-
-# Installer les dépendances
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-
-# Configurer
-cp .env.example .env
-# Éditer .env avec vos variables
-
-# Lancer (auto-crée les tables au démarrage)
+cp .env.example .env  # éditer avec vos variables
 uvicorn app.main:app --reload
-
-# Créer le premier utilisateur + client de test
-python seed.py
+python seed.py        # créer le 1er compte + clé API
 ```
 
-## Endpoints principaux
+## Endpoints de push (depuis le code EBP)
 
-### Auth (console web)
-- `POST /api/auth/login` — `{email, password}` → `{access_token, refresh_token}`
-- `POST /api/auth/refresh` — `{refresh_token}` → nouveaux tokens
+### Une ligne à la fois
+```http
+POST /api/log
+X-API-Key: llk_votre_cle
 
-### Push logs (depuis EBP)
-- `POST /api/push/logs` — multipart avec `file` + header `X-API-Key`
-- `POST /api/push/logs/raw?filename=LogXXX.txt` — corps texte brut + header `X-API-Key`
+{
+  "api_code": "LITPRX",
+  "level": "error",
+  "message": "Avenants Manquants - produit bloqué #23560",
+  "logged_at": "2026-05-26T18:28:05",
+  "run_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
 
-### Console (authentifié JWT)
+**Levels :** `info` | `warning` | `error` | `system`
+
+**run_id :** UUID généré une fois au démarrage de l'exécution, permet de regrouper
+tous les logs d'une même session. Optionnel.
+
+### Batch (flush d'un buffer)
+```http
+POST /api/logs/batch
+X-API-Key: llk_votre_cle
+
+{
+  "run_id": "550e8400-...",
+  "entries": [
+    { "api_code": "LITPRX", "level": "info", "message": "Démarrage" },
+    { "api_code": "LITPRX", "level": "error", "message": "Erreur X" }
+  ]
+}
+```
+
+## Exemple d'intégration C# / .NET (EBP)
+
+```csharp
+// Au démarrage de l'exécution
+var runId = Guid.NewGuid().ToString();
+var httpClient = new HttpClient();
+httpClient.DefaultRequestHeaders.Add("X-API-Key", "llk_votre_cle");
+
+// À chaque log
+async Task Log(string apiCode, string level, string message)
+{
+    var payload = new {
+        api_code = apiCode,
+        level = level,           // "info" | "warning" | "error" | "system"
+        message = message,
+        logged_at = DateTime.UtcNow,
+        run_id = runId
+    };
+    await httpClient.PostAsJsonAsync("https://limpid-log-api.onrender.com/api/log", payload);
+}
+
+// Utilisation
+await Log("LITPRX", "info", "Démarrage synchronisation Praxedo");
+await Log("LITPRX", "error", "Avenants Manquants - produit bloqué");
+await Log("LITPRX", "info", "Fin de traitement");
+```
+
+## Endpoints de lecture (console web — JWT requis)
+
 - `GET /api/dashboard` — stats du jour + dernières erreurs
-- `GET /api/logs?client_id=&level=&api_code=&search=&page=&page_size=` — logs filtrés
-- `GET /api/logs/sessions` — fichiers reçus
+- `GET /api/logs?client_id=&level=&api_code=&search=&page=` — logs filtrés
+- `GET /api/logs/sessions` — sessions d'exécution
 - `GET /api/clients` — clients avec stats
-
-### Admin (authentifié JWT)
 - `GET/POST /api/admin/clients` — gestion clients
-- `GET/POST/DELETE /api/admin/api-keys` — gestion clés API
-- `GET/POST /api/admin/users` — gestion utilisateurs
-
-## Format de log attendu
-
-```
-API LITPRX - 26/05/2026 18:19:05 : Dernier Fichier de log bien envoyé
-API LITGAF - 26/05/2026 18:22:52 : DBName - T2M_xxx - API Name Extension GAFIC - DBId : uuid - user EBPSDK
-API LITPRX - 26/05/2026 18:28:05 : ERREUR !! : Message d'erreur
-API LITGAF - 26/05/2026 18:28:05 : WARNING : Message warning
-API LITGAF - 26/05/2026 18:28:05 : info : Message informatif
-```
-
-## Exemple d'intégration EBP (PowerShell)
-
-```powershell
-$apiKey = "llk_votre_cle_api"
-$logFile = "C:\EBP\Logs\LogT2M_uuid.txt"
-$apiUrl = "https://limpid-log-api.onrender.com/api/push/logs"
-
-$form = @{ file = Get-Item $logFile }
-Invoke-RestMethod -Uri $apiUrl -Method POST -Form $form -Headers @{ "X-API-Key" = $apiKey }
-```
+- `GET/POST/DELETE /api/admin/api-keys` — clés API
+- `GET/POST /api/admin/users` — utilisateurs Limpid IT

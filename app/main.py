@@ -30,8 +30,8 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix="/api")
-app.include_router(push.router, prefix="/api")
-app.include_router(logs.router, prefix="/api")
+app.include_router(push.router, prefix="/api")   # /api/log  /api/logs/batch
+app.include_router(logs.router, prefix="/api")   # /api/logs  /api/logs/sessions
 app.include_router(clients.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")

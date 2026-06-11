@@ -32,8 +32,8 @@ class LogEntryRead(BaseModel):
 class LogSessionRead(BaseModel):
     id: UUID
     client_id: UUID
-    filename: str | None
-    received_at: datetime
+    run_id: str | None
+    started_at: datetime
     entry_count: int
     error_count: int
     warning_count: int
@@ -95,7 +95,7 @@ async def list_sessions(
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    q = select(LogSession).order_by(LogSession.received_at.desc()).limit(limit)
+    q = select(LogSession).order_by(LogSession.started_at.desc()).limit(limit)
     if client_id:
         q = q.where(LogSession.client_id == client_id)
     result = await db.execute(q)

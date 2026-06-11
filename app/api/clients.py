@@ -40,7 +40,7 @@ async def list_clients(
             LogSession.client_id,
             func.count(LogSession.id).label("session_count"),
             func.sum(LogSession.error_count).label("error_count"),
-            func.max(LogSession.received_at).label("last_received_at"),
+            func.max(LogSession.started_at).label("last_received_at"),
         )
         .group_by(LogSession.client_id)
         .subquery()
