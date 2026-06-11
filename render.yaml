@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: limpid-log-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false          # à renseigner manuellement dans Render
+      - key: SECRET_KEY
+        generateValue: true
+    autoDeploy: true
