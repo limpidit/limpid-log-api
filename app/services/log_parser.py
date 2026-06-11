@@ -17,6 +17,8 @@ Special patterns in message:
     Dernier Fichier de log bien envoyé
 """
 
+from __future__ import annotations
+
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
