@@ -9,7 +9,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import select
+from sqlalchemy import delete as sql_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
@@ -68,6 +68,20 @@ async def create_client(
     await db.commit()
     await db.refresh(client)
     return client
+
+
+@router.delete("/clients/{client_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_client(
+    client_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
+):
+    result = await db.execute(select(Client).where(Client.id == client_id))
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Client introuvable")
+    # Use SQL-level delete to trigger DB cascade (log_sessions, log_entries, api_keys)
+    await db.execute(sql_delete(Client).where(Client.id == client_id))
+    await db.commit()
 
 
 @router.put("/clients/{client_id}", response_model=ClientRead)
