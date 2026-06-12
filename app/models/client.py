@@ -22,6 +22,8 @@ class Client(Base):
     db_id: Mapped[str] = mapped_column(String(100), nullable=True)
     # Email address that sends logs (optional, informational)
     sender_email: Mapped[str] = mapped_column(String(255), nullable=True)
+    # Silence alert: if no log received within this many hours → status=silent (default 24h)
+    expected_log_hours: Mapped[int] = mapped_column(default=24)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     api_keys: Mapped[list["ApiKey"]] = relationship("ApiKey", back_populates="client", lazy="select")

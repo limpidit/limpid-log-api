@@ -28,6 +28,7 @@ class ClientCreate(BaseModel):
     display_name: str | None = None
     ebp_file: str | None = None
     sender_email: str | None = None
+    expected_log_hours: int = 24
 
 
 class ClientRead(BaseModel):
@@ -37,6 +38,7 @@ class ClientRead(BaseModel):
     ebp_file: str | None
     db_id: str | None
     sender_email: str | None
+    expected_log_hours: int
     created_at: datetime
 
     model_config = {"from_attributes": True}
