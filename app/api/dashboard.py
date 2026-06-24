@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -17,6 +17,7 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 class DashboardStats(BaseModel):
     clients_count: int
     logs_today: int
+    logs_24h: int
     errors_today: int
     warnings_today: int
     sessions_today: int
@@ -28,12 +29,18 @@ async def get_dashboard(
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    now = datetime.now(timezone.utc)
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    since_24h = now - timedelta(hours=24)
 
     clients_count = (await db.execute(select(func.count(Client.id)))).scalar_one()
 
     logs_today = (await db.execute(
         select(func.count(LogEntry.id)).where(LogEntry.logged_at >= today)
+    )).scalar_one()
+
+    logs_24h = (await db.execute(
+        select(func.count(LogEntry.id)).where(LogEntry.logged_at >= since_24h)
     )).scalar_one()
 
     errors_today = (await db.execute(
@@ -71,6 +78,7 @@ async def get_dashboard(
     return DashboardStats(
         clients_count=clients_count,
         logs_today=logs_today,
+        logs_24h=logs_24h,
         errors_today=errors_today,
         warnings_today=warnings_today,
         sessions_today=sessions_today,
