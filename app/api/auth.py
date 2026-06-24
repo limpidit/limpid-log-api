@@ -40,7 +40,7 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Compte désactivé")
 
-    payload = {"sub": str(user.id), "email": user.email}
+    payload = {"sub": str(user.id), "email": user.email, "is_admin": user.is_admin}
     return TokenResponse(
         access_token=create_access_token(payload),
         refresh_token=create_refresh_token(payload),
@@ -62,7 +62,7 @@ async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilisateur introuvable")
 
-    new_payload = {"sub": str(user.id), "email": user.email}
+    new_payload = {"sub": str(user.id), "email": user.email, "is_admin": user.is_admin}
     return TokenResponse(
         access_token=create_access_token(new_payload),
         refresh_token=create_refresh_token(new_payload),
