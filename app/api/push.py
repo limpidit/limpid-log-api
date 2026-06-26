@@ -20,13 +20,12 @@ from datetime import datetime, timezone
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.limiter import limiter
 from app.core.security import hash_api_key
 from app.models.api_key import ApiKey
 from app.models.log_entry import LogEntry
@@ -109,9 +108,7 @@ class BatchResponse(BaseModel):
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @router.post("/log", response_model=PushResponse, status_code=201)
-@limiter.limit("60/minute")
 async def push_log(
-    request: Request,
     body: LogEntryIn,
     x_api_key: str = Header(..., alias="X-API-Key"),
     db: AsyncSession = Depends(get_db),
@@ -150,9 +147,7 @@ async def push_log(
 
 
 @router.post("/logs/batch", response_model=BatchResponse, status_code=201)
-@limiter.limit("30/minute")
 async def push_logs_batch(
-    request: Request,
     body: BatchIn,
     x_api_key: str = Header(..., alias="X-API-Key"),
     db: AsyncSession = Depends(get_db),
