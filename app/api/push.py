@@ -26,9 +26,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from slowapi import Limiter
-
-limiter = Limiter(key_func=lambda request: request.headers.get("X-API-Key", request.client.host))
+from app.core.limiter import limiter
 from app.core.security import hash_api_key
 from app.models.api_key import ApiKey
 from app.models.log_entry import LogEntry

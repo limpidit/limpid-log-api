@@ -2,20 +2,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
 from app.core.database import Base, engine
+from app.core.limiter import limiter
 from app.api import auth, push, logs, clients, admin, dashboard
-
-
-def _get_api_key_or_ip(request: Request) -> str:
-    """Rate limit push endpoints by API key, everything else by IP."""
-    return request.headers.get("X-API-Key") or get_remote_address(request)
-
-
-limiter = Limiter(key_func=get_remote_address, default_limits=[])
 
 # Make limiter available to route decorators via app.state
 @asynccontextmanager
